@@ -1,0 +1,41 @@
+- name: Create user 'sh' with SSH and sudo access
+  hosts: all
+  become: yes
+
+  vars_files:
+    - ../../vault/vault.yml
+
+  tasks:
+    - name: Create user sh
+      user:
+        name: sh
+        comment: "Deployment user"
+        shell: /bin/bash
+        password: "{{ sh_password | password_hash('sha512') }}"
+        groups: sudo
+        state: present
+        create_home: yes
+
+    - name: Create .ssh directory
+      file:
+        path: /home/sh/.ssh
+        state: directory
+        owner: sh
+        group: sh
+        mode: '0700'
+
+    - name: Add public key
+      copy:
+        src: "{{ playbook_dir }}/../../files/ssh_keys/sh.pub"
+        dest: /home/sh/.ssh/authorized_keys
+        owner: sh
+        group: sh
+        mode: '0600'
+
+    - name: Ensure 'sh' can sudo without password
+      copy:
+        content: "sh ALL=(ALL) NOPASSWD:ALL"
+        dest: /etc/sudoers.d/sh
+        owner: root
+        group: root
+        mode: '0440'
