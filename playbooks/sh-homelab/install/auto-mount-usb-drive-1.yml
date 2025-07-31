@@ -1,0 +1,29 @@
+---
+- name: Automount /dev/sdb2 to /mnt/usb
+  hosts: sh-homelab
+  become: true
+  tasks:
+
+    - name: Ensure mount directory exists
+      file:
+        path: /mnt/usb
+        state: directory
+        mode: '0755'
+
+    - name: Get UUID of /dev/sdb2
+      command: blkid -s UUID -o value /dev/sdb2
+      register: usb_uuid
+      changed_when: false
+
+    - name: Get filesystem type of /dev/sdb2
+      command: blkid -s TYPE -o value /dev/sdb2
+      register: usb_fstype
+      changed_when: false
+
+    - name: Add entry to /etc/fstab
+      mount:
+        path: /mnt/usb
+        src: "UUID={{ usb_uuid.stdout }}"
+        fstype: "{{ usb_fstype.stdout }}"
+        opts: defaults
+        state: mounted
