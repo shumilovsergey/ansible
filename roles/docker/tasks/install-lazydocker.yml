@@ -1,0 +1,52 @@
+---
+- name: Get latest LazyDocker version from GitHub API
+  uri:
+    url: https://api.github.com/repos/jesseduffield/lazydocker/releases/latest
+    return_content: true
+  register: lazydocker_api_response
+
+- name: Extract LazyDocker version tag
+  set_fact:
+    lazydocker_version: "{{ lazydocker_api_response.content | from_json | dict2items | selectattr('key', 'equalto', 'tag_name') | map(attribute='value') | list | first | regex_replace('^v', '') }}"
+
+- name: Download LazyDocker archive
+  get_url:
+    url: "https://github.com/jesseduffield/lazydocker/releases/download/v{{ lazydocker_version }}/lazydocker_{{ lazydocker_version }}_Linux_x86_64.tar.gz"
+    dest: /tmp/lazydocker.tar.gz
+    mode: '0644'
+
+- name: Create temporary extraction directory
+  file:
+    path: /tmp/lazydocker-temp
+    state: directory
+    mode: '0755'
+
+- name: Extract LazyDocker binary
+  unarchive:
+    src: /tmp/lazydocker.tar.gz
+    dest: /tmp/lazydocker-temp
+    remote_src: true
+
+- name: Move LazyDocker to /usr/local/bin
+  copy:
+    src: /tmp/lazydocker-temp/lazydocker
+    dest: /usr/local/bin/lazydocker
+    mode: '0755'
+    remote_src: true
+
+- name: Clean up temporary LazyDocker files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/lazydocker.tar.gz
+    - /tmp/lazydocker-temp
+
+- name: Check LazyDocker version
+  command: lazydocker --version
+  register: lazydocker_version_output
+  changed_when: false
+
+- name: Show LazyDocker version
+  debug:
+    msg: "Installed LazyDocker version: {{ lazydocker_version_output.stdout }}"

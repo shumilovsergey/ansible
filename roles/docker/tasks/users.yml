@@ -1,0 +1,11 @@
+---
+- name: Ensure docker group exists
+  group:
+    name: docker
+    state: present
+
+- name: Add 'ansible' user to docker group
+  user:
+    name: ansible
+    groups: docker
+    append: yes

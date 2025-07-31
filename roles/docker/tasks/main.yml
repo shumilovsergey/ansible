@@ -1,0 +1,4 @@
+- import_tasks: install-docker.yml
+- import_tasks: install-compose.yml
+- import_tasks: install-lazydocker.yml
+- import_tasks: users.yml
