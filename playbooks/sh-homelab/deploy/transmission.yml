@@ -1,0 +1,7 @@
+- name: Deploy Transmission
+  hosts: sh-homelab
+  become: true
+  vars_files:
+    - /ansible/vault/vault.yml
+  roles:
+    - transmission

@@ -27,3 +27,6 @@
         fstype: "{{ usb_fstype.stdout }}"
         opts: defaults
         state: mounted
+        
+    - name: Ensure /mnt/usb is owned by UID 1000
+      command: chown -R 1000:1000 /mnt/usb

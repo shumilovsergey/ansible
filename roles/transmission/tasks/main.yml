@@ -1,0 +1,28 @@
+---
+- name: Include port variables
+  include_vars: /ansible/playbooks/sh-homelab/deploy/ports.yml
+
+- name: Create /root/transmission directory
+  file:
+    path: /root/transmission
+    state: directory
+    mode: '0755'
+
+- name: Ensure Transmission config directory exists
+  file:
+    path: /root/transmission/config
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy docker-compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: /root/transmission/docker-compose.yml
+    mode: '0644'
+
+- name: Start Transmission container
+  command: docker-compose up -d
+  args:
+    chdir: /root/transmission

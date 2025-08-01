@@ -21,19 +21,26 @@
 │   │   └── users.yml
 │   └── sh-homelab
 │       ├── deploy
+│       │   ├── ports.yml
+│       │   └── transmission.yml
 │       └── install
 │           ├── auto-mount-usb-drive-1.yml
 │           └── docker-staff.yml
 ├── roles
-│   └── docker
-│       └── tasks
-│           ├── install-compose.yml
-│           ├── install-docker.yml
-│           ├── install-lazydocker.yml
-│           ├── main.yml
-│           └── users.yml
+│   ├── docker
+│   │   └── tasks
+│   │       ├── install-compose.yml
+│   │       ├── install-docker.yml
+│   │       ├── install-lazydocker.yml
+│   │       ├── main.yml
+│   │       └── users.yml
+│   └── transmission
+│       ├── tasks
+│       │   └── main.yml
+│       └── templates
+│           └── docker-compose.yml.j2
 └── vault
     ├── .vault_pass.txt
     └── vault.yml
 
-14 directories, 23 files
+17 directories, 27 files

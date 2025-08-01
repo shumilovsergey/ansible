@@ -1,0 +1,27 @@
+version: '3.8'
+
+
+services:
+  transmission:
+    image: linuxserver/transmission
+    container_name: transmission
+    restart: unless-stopped
+    ports:
+      - "{{ transmission_web_port }}:9091"
+      - "51413:51413"
+      - "51413:51413/udp"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - USER=sh
+      - PASS={{ sh_password }}
+    volumes:
+      - ./config:/config
+      - /mnt/usb:/downloads
+    entrypoint: ["/bin/sh", "-c", "until mountpoint -q /mnt/usb; do echo 'Waiting for USB...'; sleep 2; done; /init"]
+    networks:
+      - media
+
+networks:
+  media: {}
