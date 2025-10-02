@@ -2,10 +2,10 @@
 # Add your projects here to track which ports are used and avoid conflicts
 
 projects:
-  wgetbash:
-    domain: wgetbash.sh-development.ru
+  load-testing:
+    domain: load-testing.sh-development.ru
     port: 3000
-    description: WgetBash project
+    description: load-testing project
 
   # Add more projects below:
   # myapp:

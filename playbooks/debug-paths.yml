@@ -1,0 +1,57 @@
+---
+- name: Debug - Check file paths and template system
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Check current working directory
+      command: pwd
+      register: pwd_result
+      changed_when: false
+
+    - name: Display working directory
+      debug:
+        msg: "Current directory: {{ pwd_result.stdout }}"
+
+    - name: Check if template file exists
+      stat:
+        path: /ansible/playbooks/nginx/templates/proxy.conf.j2
+      register: template_stat
+
+    - name: Display template file status
+      debug:
+        msg:
+          - "Template exists: {{ template_stat.stat.exists }}"
+          - "Is readable: {{ template_stat.stat.readable | default('N/A') }}"
+          - "Full path: /ansible/playbooks/nginx/templates/proxy.conf.j2"
+
+    - name: List playbooks directory
+      command: ls -la /ansible/playbooks/nginx/
+      register: nginx_dir
+      changed_when: false
+
+    - name: Display nginx directory
+      debug:
+        msg: "{{ nginx_dir.stdout_lines }}"
+
+    - name: List templates directory
+      command: ls -la /ansible/playbooks/nginx/templates/
+      register: templates_dir
+      changed_when: false
+
+    - name: Display templates directory
+      debug:
+        msg: "{{ templates_dir.stdout_lines }}"
+
+    - name: Try to read the template directly
+      slurp:
+        src: /ansible/playbooks/nginx/templates/proxy.conf.j2
+      register: template_content
+
+    - name: Display template content
+      debug:
+        msg: "Template file can be read: {{ (template_content.content | b64decode | length) }} bytes"
+
+    - name: Test lookup template
+      debug:
+        msg: "{{ lookup('file', '/ansible/playbooks/nginx/templates/proxy.conf.j2') }}"
