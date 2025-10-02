@@ -1,0 +1,38 @@
+---
+- name: Setup user with SSH and sudo access
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Create user
+      user:
+        name: "{{ lookup('env', 'ANSIBLE_USER') }}"
+        comment: "Deployment user"
+        shell: /bin/bash
+        groups: sudo
+        state: present
+        create_home: yes
+
+    - name: Create .ssh directory
+      file:
+        path: "/home/{{ lookup('env', 'ANSIBLE_USER') }}/.ssh"
+        state: directory
+        owner: "{{ lookup('env', 'ANSIBLE_USER') }}"
+        group: "{{ lookup('env', 'ANSIBLE_USER') }}"
+        mode: '0700'
+
+    - name: Add public key
+      copy:
+        src: /root/.ssh/id_rsa.pub
+        dest: "/home/{{ lookup('env', 'ANSIBLE_USER') }}/.ssh/authorized_keys"
+        owner: "{{ lookup('env', 'ANSIBLE_USER') }}"
+        group: "{{ lookup('env', 'ANSIBLE_USER') }}"
+        mode: '0600'
+
+    - name: Ensure user can sudo without password
+      copy:
+        content: "{{ lookup('env', 'ANSIBLE_USER') }} ALL=(ALL) NOPASSWD:ALL"
+        dest: "/etc/sudoers.d/{{ lookup('env', 'ANSIBLE_USER') }}"
+        owner: root
+        group: root
+        mode: '0440'

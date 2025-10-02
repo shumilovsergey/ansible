@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  ansible:
+    build:
+      context: .
+    volumes:
+      - .:/ansible
+      - ${SSH_PRIVATE_KEY_PATH}:/root/.ssh/id_rsa:ro
+      - ${SSH_PUBLIC_KEY_PATH}:/root/.ssh/id_rsa.pub:ro
+    working_dir: /ansible
+    environment:
+      - ANSIBLE_USER=${ANSIBLE_USER}
+    stdin_open: true
+    tty: true

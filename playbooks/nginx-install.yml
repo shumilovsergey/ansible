@@ -1,0 +1,33 @@
+---
+- name: Install and configure Nginx
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Enable and start Nginx
+      systemd:
+        name: nginx
+        enabled: yes
+        state: started
+
+    - name: Allow Nginx HTTP through firewall (if ufw is active)
+      ufw:
+        rule: allow
+        name: 'Nginx HTTP'
+      ignore_errors: yes
+
+    - name: Allow Nginx HTTPS through firewall (if ufw is active)
+      ufw:
+        rule: allow
+        name: 'Nginx HTTPS'
+      ignore_errors: yes

@@ -1,0 +1,45 @@
+# Ansible Inventory Example
+# Copy this file to inventory.yml and add your hosts
+# Organize hosts into groups for easy targeting
+
+all:
+  children:
+    # Kubernetes cluster
+    k8s_cluster:
+      hosts:
+        k8s-master-1:
+          ansible_host: 192.168.1.10
+        k8s-worker-1:
+          ansible_host: 192.168.1.11
+        k8s-worker-2:
+          ansible_host: 192.168.1.12
+
+    # Web servers
+    web_servers:
+      hosts:
+        web-prod-1:
+          ansible_host: 192.168.1.20
+        web-prod-2:
+          ansible_host: 192.168.1.21
+
+    # Database servers
+    databases:
+      hosts:
+        db-primary:
+          ansible_host: 192.168.1.30
+        db-replica:
+          ansible_host: 192.168.1.31
+
+    # Home lab
+    homelab:
+      hosts:
+        homelab-server:
+          ansible_host: 10.0.0.50
+        nas:
+          ansible_host: 10.0.0.51
+
+    # Ungrouped individual servers
+    standalone:
+      hosts:
+        monitoring:
+          ansible_host: 192.168.1.100
