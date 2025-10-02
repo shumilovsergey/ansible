@@ -1,0 +1,34 @@
+# Environment-specific configuration
+.env
+
+# Environment-specific inventory
+inventory.yml
+
+# Generated files
+PROJECT_STRUCTURE.txt
+
+# Ansible
+*.retry
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Old files
+old-ansible/
+
+# Claude Code
+CLAUDE.md
+.claude

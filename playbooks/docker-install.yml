@@ -1,5 +1,5 @@
 ---
-- name: Install Docker
+- name: Install Docker, Docker Compose, and Lazydocker
   hosts: all
   become: yes
 
@@ -43,6 +43,35 @@
         url: "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64"
         dest: /usr/local/bin/docker-compose
         mode: '0755'
+
+    - name: Get latest Lazydocker version
+      uri:
+        url: https://api.github.com/repos/jesseduffield/lazydocker/releases/latest
+        return_content: yes
+      register: lazydocker_release
+
+    - name: Download Lazydocker
+      get_url:
+        url: "https://github.com/jesseduffield/lazydocker/releases/download/{{ lazydocker_release.json.tag_name }}/lazydocker_{{ lazydocker_release.json.tag_name | regex_replace('^v', '') }}_Linux_x86_64.tar.gz"
+        dest: /tmp/lazydocker.tar.gz
+        mode: '0644'
+
+    - name: Extract Lazydocker
+      unarchive:
+        src: /tmp/lazydocker.tar.gz
+        dest: /usr/local/bin
+        remote_src: yes
+        creates: /usr/local/bin/lazydocker
+
+    - name: Make Lazydocker executable
+      file:
+        path: /usr/local/bin/lazydocker
+        mode: '0755'
+
+    - name: Remove Lazydocker archive
+      file:
+        path: /tmp/lazydocker.tar.gz
+        state: absent
 
     - name: Add user to docker group
       user:

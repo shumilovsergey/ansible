@@ -1,0 +1,68 @@
+---
+- name: SSH hardening - disable password auth and root login
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Backup original sshd_config
+      copy:
+        src: /etc/ssh/sshd_config
+        dest: /etc/ssh/sshd_config.backup
+        remote_src: yes
+        force: no
+
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        state: present
+      notify: Restart SSH
+
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+        state: present
+      notify: Restart SSH
+
+    - name: Enable public key authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PubkeyAuthentication'
+        line: 'PubkeyAuthentication yes'
+        state: present
+      notify: Restart SSH
+
+    - name: Disable challenge-response authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?ChallengeResponseAuthentication'
+        line: 'ChallengeResponseAuthentication no'
+        state: present
+      notify: Restart SSH
+
+    - name: Test SSH configuration before restart
+      command: sshd -t
+      changed_when: false
+
+    - name: Display warning message
+      debug:
+        msg: |
+          ⚠️  WARNING: SSH configuration will be changed!
+          - Password authentication: DISABLED
+          - Root login: DISABLED
+          - Only SSH key authentication will work
+
+          Make sure you have:
+          1. SSH key configured for your user
+          2. Can connect with your key before closing this session
+
+          Backup created at: /etc/ssh/sshd_config.backup
+
+  handlers:
+    - name: Restart SSH
+      systemd:
+        name: sshd
+        state: restarted

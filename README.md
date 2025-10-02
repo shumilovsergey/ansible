@@ -114,6 +114,54 @@ Create focused, task-specific playbooks in `playbooks/`:
 
 No need for roles or complex structure. Keep it simple and direct.
 
+## Nginx Reverse Proxy Workflow
+
+The `playbooks/nginx/` directory contains everything for nginx setups:
+
+```
+playbooks/nginx/
+├── install.yml              # Install nginx (run once per server)
+├── ports.yml                # Port registry - track all your projects
+├── templates/
+│   └── proxy.conf.j2        # Nginx config template
+├── wgetbash.yml             # Example: project-specific setup
+└── yourproject.yml          # Create one per project
+```
+
+### Setup a new project with SSL:
+
+1. **Add your project to `ports.yml`:**
+   ```yaml
+   projects:
+     myproject:
+       domain: myapp.example.com
+       port: 8080
+       description: My application
+   ```
+
+2. **Create a playbook** (copy `wgetbash.yml` as template):
+   ```bash
+   cp playbooks/nginx/wgetbash.yml playbooks/nginx/myproject.yml
+   # Edit: change project_name variable to match your project in ports.yml
+   ```
+
+3. **Run the playbook:**
+   ```bash
+   # First time: install nginx
+   ansible-playbook playbooks/nginx/install.yml --limit web-server
+
+   # Setup project with SSL
+   ansible-playbook playbooks/nginx/myproject.yml --limit web-server
+   ```
+
+This will:
+- Create nginx config in `/etc/nginx/conf.d/`
+- Obtain SSL certificate with Certbot
+- Redirect HTTP → HTTPS
+- Set up auto-renewal cron job
+
+**Optional:** Set `CERTBOT_EMAIL` in `.env` for SSL cert notifications.
+
 ## Notes
 
 - `.env` and `inventory.yml` are gitignored - safe to store real IPs and settings

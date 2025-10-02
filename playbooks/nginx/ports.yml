@@ -1,0 +1,19 @@
+# Port Registry for Nginx Reverse Proxy Configurations
+# Add your projects here to track which ports are used and avoid conflicts
+
+projects:
+  wgetbash:
+    domain: wgetbash.sh-development.ru
+    port: 3000
+    description: WgetBash project
+
+  # Add more projects below:
+  # myapp:
+  #   domain: myapp.example.com
+  #   port: 8080
+  #   description: My application
+
+  # api:
+  #   domain: api.example.com
+  #   port: 8000
+  #   description: API service

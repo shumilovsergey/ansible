@@ -1,0 +1,87 @@
+---
+- name: Setup Nginx reverse proxy with SSL for WgetBash
+  hosts: all
+  become: yes
+
+  vars_files:
+    - ports.yml
+
+  vars:
+    project_name: wgetbash
+    domain: "{{ projects[project_name].domain }}"
+    port: "{{ projects[project_name].port }}"
+    config_file: "/etc/nginx/conf.d/{{ domain }}.conf"
+
+  tasks:
+    - name: Check if Nginx is installed
+      command: nginx -v
+      register: nginx_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Fail if Nginx is not installed
+      fail:
+        msg: "Nginx is not installed. Run playbooks/nginx/install.yml first."
+      when: nginx_check.rc != 0
+
+    - name: Create Nginx proxy config from template
+      template:
+        src: templates/proxy.conf.j2
+        dest: "{{ config_file }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload Nginx
+
+    - name: Test Nginx configuration
+      command: nginx -t
+      changed_when: false
+
+    - name: Ensure Nginx is running
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Check if Certbot is installed
+      command: certbot --version
+      register: certbot_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install Certbot if not present
+      apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+        update_cache: yes
+      when: certbot_check.rc != 0
+
+    - name: Obtain SSL certificate with Certbot
+      command: >
+        certbot --nginx -d {{ domain }}
+        --non-interactive
+        --agree-tos
+        --redirect
+        --email {{ lookup('env', 'CERTBOT_EMAIL') | default('admin@' + domain, true) }}
+      args:
+        creates: /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+
+    - name: Set up automatic certificate renewal
+      cron:
+        name: "Certbot renewal"
+        job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+        minute: "0"
+        hour: "3"
+        day: "*"
+        month: "*"
+        weekday: "*"
+        user: root
+        state: present
+
+  handlers:
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded
