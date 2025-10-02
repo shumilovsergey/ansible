@@ -2,18 +2,17 @@
 # Add your projects here to track which ports are used and avoid conflicts
 
 projects:
+
+# ru-vps
   load-testing:
     domain: load-testing.sh-development.ru
     port: 3000
     description: load-testing project
 
-  # Add more projects below:
-  # myapp:
-  #   domain: myapp.example.com
-  #   port: 8080
-  #   description: My application
+# la-vps
+  vault:
+    domain: vault.sh-development.ru
+    port: 9000
+    description: vault on homelab
 
-  # api:
-  #   domain: api.example.com
-  #   port: 8000
-  #   description: API service
+
