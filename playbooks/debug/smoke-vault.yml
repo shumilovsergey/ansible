@@ -1,0 +1,68 @@
+---
+- name: Test Vault → AppRole → KVv2 and extract GitHub PAT
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    kv_mount: "kv"                       # имя вашего KV-монтажа
+    secret_path: "ansible/github_pat_min"  # путь секрета внутри KV
+
+  tasks:
+    - name: Check Vault environment variables
+      debug:
+        msg:
+          - "VAULT_ADDR: {{ lookup('env', 'VAULT_ADDR') }}"
+          - "VAULT_ROLE_ID: {{ 'set' if lookup('env','VAULT_ROLE_ID') else 'NOT SET' }}"
+          - "VAULT_SECRET_ID: {{ 'set' if lookup('env','VAULT_SECRET_ID') else 'NOT SET' }}"
+
+    - name: Fail early if required env vars are missing
+      assert:
+        that:
+          - lookup('env','VAULT_ADDR') | length > 0
+          - lookup('env','VAULT_ROLE_ID') | length > 0
+          - lookup('env','VAULT_SECRET_ID') | length > 0
+        fail_msg: "VAULT_ADDR / VAULT_ROLE_ID / VAULT_SECRET_ID must be set in environment."
+
+    - name: Vault status (connectivity check)
+      shell: vault status
+      environment:
+        VAULT_ADDR: "{{ lookup('env', 'VAULT_ADDR') }}"
+      register: vault_status
+      failed_when: false
+
+    - name: Show Vault status
+      debug:
+        var: vault_status.stdout_lines
+
+    - name: AppRole login (JSON)
+      shell: |
+        vault write -format=json auth/approle/login \
+          role_id="{{ lookup('env','VAULT_ROLE_ID') }}" \
+          secret_id="{{ lookup('env','VAULT_SECRET_ID') }}"
+      environment:
+        VAULT_ADDR: "{{ lookup('env','VAULT_ADDR') }}"
+      register: vault_login
+      no_log: true  # скрываем токены в логах
+
+    - name: Extract client token
+      set_fact:
+        vault_token: "{{ (vault_login.stdout | from_json).auth.client_token }}"
+      no_log: true
+
+    - name: Read secret (JSON) from KV v2
+      shell: vault kv get -format=json {{ kv_mount }}/{{ secret_path }}
+      environment:
+        VAULT_ADDR: "{{ lookup('env','VAULT_ADDR') }}"
+        VAULT_TOKEN: "{{ vault_token }}"
+      register: kv_json
+      no_log: true
+
+    - name: Extract 'token' field from secret
+      set_fact:
+        github_pat: "{{ (kv_json.stdout | from_json).data.data.token }}"
+      no_log: true
+
+    - name: Confirm secret read (without revealing)
+      debug:
+        msg: "✓ Read secret {{ kv_mount }}/{{ secret_path }} (token length={{ github_pat | length }})"

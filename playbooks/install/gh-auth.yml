@@ -1,0 +1,76 @@
+---
+- name: Install GitHub CLI and authenticate
+  hosts: all
+  become: yes
+
+  vars:
+    kv_mount: "kv"
+    secret_path: "ansible/github_pat_min"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - gpg
+        state: present
+
+    - name: Add GitHub CLI GPG key
+      apt_key:
+        url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+        state: present
+
+    - name: Add GitHub CLI repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://cli.github.com/packages stable main"
+        state: present
+
+    - name: Install GitHub CLI
+      apt:
+        name: gh
+        state: present
+        update_cache: yes
+
+    - name: AppRole login to Vault
+      shell: |
+        vault write -format=json auth/approle/login \
+          role_id="{{ lookup('env','VAULT_ROLE_ID') }}" \
+          secret_id="{{ lookup('env','VAULT_SECRET_ID') }}"
+      environment:
+        VAULT_ADDR: "{{ lookup('env','VAULT_ADDR') }}"
+      delegate_to: localhost
+      become: no
+      register: vault_login
+      no_log: true
+
+    - name: Extract Vault token
+      set_fact:
+        vault_token: "{{ (vault_login.stdout | from_json).auth.client_token }}"
+      no_log: true
+
+    - name: Read GitHub PAT from Vault
+      shell: vault kv get -format=json {{ kv_mount }}/{{ secret_path }}
+      environment:
+        VAULT_ADDR: "{{ lookup('env','VAULT_ADDR') }}"
+        VAULT_TOKEN: "{{ vault_token }}"
+      delegate_to: localhost
+      become: no
+      register: kv_json
+      no_log: true
+
+    - name: Extract GitHub token
+      set_fact:
+        github_pat: "{{ (kv_json.stdout | from_json).data.data.token }}"
+      no_log: true
+
+    - name: Authenticate GitHub CLI
+      become: no
+      become_user: "{{ lookup('env', 'ANSIBLE_USER') }}"
+      shell: |
+        echo "{{ github_pat }}" | gh auth login --with-token
+      no_log: true

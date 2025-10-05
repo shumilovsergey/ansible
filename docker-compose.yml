@@ -11,5 +11,8 @@ services:
     working_dir: /ansible
     environment:
       - ANSIBLE_USER=${ANSIBLE_USER}
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_ROLE_ID=${VAULT_ROLE_ID}
+      - VAULT_SECRET_ID=${VAULT_SECRET_ID}
     stdin_open: true
     tty: true
