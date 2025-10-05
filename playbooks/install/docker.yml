@@ -1,6 +1,6 @@
 ---
 - name: Install Docker, Docker Compose, and Lazydocker
-  hosts: all
+  hosts: "{{ host | default('none') }}"
   become: yes
 
   tasks:

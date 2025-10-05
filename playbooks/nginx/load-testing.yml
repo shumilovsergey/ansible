@@ -1,6 +1,6 @@
 ---
 - name: Setup Nginx reverse proxy with SSL
-  hosts: all
+  hosts: "{{ host | default('none') }}"
   become: yes
 
   vars_files:

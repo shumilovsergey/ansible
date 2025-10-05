@@ -1,6 +1,6 @@
 ---
 - name: Smoke test - verify Ansible connection and sudo rights
-  hosts: all
+  hosts: "{{ host | default('none') }}"
   gather_facts: no
 
   tasks:

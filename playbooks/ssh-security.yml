@@ -1,6 +1,6 @@
 ---
 - name: SSH hardening - disable password auth and root login
-  hosts: all
+  hosts: "{{ host | default('none') }}"
   become: yes
 
   tasks:

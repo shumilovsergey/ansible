@@ -30,22 +30,22 @@ A stateless, portable Ansible setup running in Docker. Clone this repo on any ma
    docker-compose run ansible
    ```
 
-5. **Execute playbooks with interactive targeting:**
+5. **Execute playbooks with explicit targeting:**
 
-   All playbooks use `hosts: all` - you choose where to run them using `--limit`:
+   All playbooks require you to specify where to run using `-e host=`:
 
    ```bash
    # Run on a single host
-   ansible-playbook playbooks/docker-install.yml --limit k8s-master-1
+   ansible-playbook playbooks/install/docker.yml -e host=hc-master-1
 
    # Run on an entire group
-   ansible-playbook playbooks/docker-install.yml --limit k8s_cluster
+   ansible-playbook playbooks/install/docker.yml -e host=web_servers
 
-   # Run on multiple hosts
-   ansible-playbook playbooks/nginx-install.yml --limit web-prod-1,web-prod-2
+   # Run on ALL servers (be careful!)
+   ansible-playbook playbooks/install/docker.yml -e host=all
 
-   # Run on multiple groups
-   ansible-playbook playbooks/user-setup.yml --limit k8s_cluster,web_servers
+   # Without -e host=, playbooks do nothing (safe default)
+   ansible-playbook playbooks/install/docker.yml  # runs on 'none' = no hosts
    ```
 
    **List available hosts/groups:**

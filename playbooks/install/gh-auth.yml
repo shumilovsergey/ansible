@@ -1,6 +1,6 @@
 ---
 - name: Install GitHub CLI and authenticate
-  hosts: all
+  hosts: "{{ host | default('none') }}"
   become: yes
 
   vars:
