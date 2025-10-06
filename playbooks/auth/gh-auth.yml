@@ -18,6 +18,7 @@
         name:
           - curl
           - gpg
+          - git
         state: present
 
     - name: Add GitHub CLI GPG key
