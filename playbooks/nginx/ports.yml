@@ -15,4 +15,14 @@ projects:
     port: 9000
     description: vault on homelab
 
+  keycloak:
+    domain: keycloak.sh-development.ru
+    port: 9001
+    description: description
 
+
+
+  # name-here:
+  #   domain: .sh-development.ru
+  #   port: 22
+  #   description: description

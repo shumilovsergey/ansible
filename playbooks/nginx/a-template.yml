@@ -1,13 +1,13 @@
 ---
 - name: Setup Nginx reverse proxy with SSL
-  hosts: all
+  hosts: "{{ host | default('none') }}"
   become: yes
 
   vars_files:
     - ports.yml
 
   vars:
-    project_name: vault
+    project_name: #PROJECT NAME FROM PORTS
     domain: "{{ projects[project_name].domain }}"
     nginx_port: "{{ projects[project_name].port }}"
     config_file: "/etc/nginx/conf.d/{{ domain }}.conf"
