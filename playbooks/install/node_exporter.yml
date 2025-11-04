@@ -1,0 +1,110 @@
+---
+- name: Install Node Exporter
+  hosts: "{{ host | default('none') }}"
+  become: yes
+
+  vars:
+    node_exporter_version: "1.8.2"
+    node_exporter_port: 9100
+    node_exporter_user: "ansible"
+
+  tasks:
+    - name: Check if Node Exporter is already installed
+      stat:
+        path: /usr/local/bin/node_exporter
+      register: node_exporter_binary
+
+    - name: Download and install Node Exporter
+      block:
+        - name: Download Node Exporter
+          get_url:
+            url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+            dest: /tmp/node_exporter.tar.gz
+            mode: '0644'
+
+        - name: Extract Node Exporter
+          unarchive:
+            src: /tmp/node_exporter.tar.gz
+            dest: /tmp
+            remote_src: yes
+
+        - name: Copy Node Exporter binary
+          copy:
+            src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+            dest: /usr/local/bin/node_exporter
+            owner: "{{ node_exporter_user }}"
+            group: "{{ node_exporter_user }}"
+            mode: '0755'
+            remote_src: yes
+
+        - name: Clean up temporary files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/node_exporter.tar.gz
+            - "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64"
+
+      when: not node_exporter_binary.stat.exists
+
+    - name: Create Node Exporter systemd service
+      shell: |
+        cat > /etc/systemd/system/node_exporter.service << 'EOF'
+        [Unit]
+        Description=Node Exporter
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        User={{ node_exporter_user }}
+        Group={{ node_exporter_user }}
+        Type=simple
+        ExecStart=/usr/local/bin/node_exporter --web.listen-address=:{{ node_exporter_port }}
+        Restart=on-failure
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+        chmod 0644 /etc/systemd/system/node_exporter.service
+      args:
+        executable: /bin/bash
+      notify: Restart Node Exporter
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Node Exporter service
+      systemd:
+        name: node_exporter
+        enabled: yes
+        state: started
+
+    - name: Check if UFW is active
+      command: ufw status
+      register: ufw_status
+      changed_when: false
+      failed_when: false
+
+    - name: Allow Node Exporter port in UFW
+      ufw:
+        rule: allow
+        port: "{{ node_exporter_port }}"
+        proto: tcp
+        comment: "node_exporter"
+      when: "'Status: active' in ufw_status.stdout"
+
+    - name: Display Node Exporter status
+      debug:
+        msg:
+          - "Node Exporter installed successfully"
+          - "Version: {{ node_exporter_version }}"
+          - "Port: {{ node_exporter_port }}"
+          - "Access metrics at: http://{{ ansible_host }}:{{ node_exporter_port }}/metrics"
+
+  handlers:
+    - name: Restart Node Exporter
+      systemd:
+        name: node_exporter
+        state: restarted

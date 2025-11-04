@@ -1,0 +1,133 @@
+---
+- name: Install Process Exporter
+  hosts: "{{ host | default('none') }}"
+  become: yes
+
+  vars:
+    process_exporter_version: "0.8.3"
+    process_exporter_port: 9256
+    process_exporter_user: "ansible"
+
+  tasks:
+    - name: Check if Process Exporter is already installed
+      stat:
+        path: /usr/local/bin/process-exporter
+      register: process_exporter_binary
+
+    - name: Download and install Process Exporter
+      block:
+        - name: Download Process Exporter
+          get_url:
+            url: "https://github.com/ncabatoff/process-exporter/releases/download/v{{ process_exporter_version }}/process-exporter-{{ process_exporter_version }}.linux-amd64.tar.gz"
+            dest: /tmp/process-exporter.tar.gz
+            mode: '0644'
+
+        - name: Extract Process Exporter
+          unarchive:
+            src: /tmp/process-exporter.tar.gz
+            dest: /tmp
+            remote_src: yes
+
+        - name: Copy Process Exporter binary
+          copy:
+            src: "/tmp/process-exporter-{{ process_exporter_version }}.linux-amd64/process-exporter"
+            dest: /usr/local/bin/process-exporter
+            owner: "{{ process_exporter_user }}"
+            group: "{{ process_exporter_user }}"
+            mode: '0755'
+            remote_src: yes
+
+        - name: Clean up temporary files
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /tmp/process-exporter.tar.gz
+            - "/tmp/process-exporter-{{ process_exporter_version }}.linux-amd64"
+
+      when: not process_exporter_binary.stat.exists
+
+    - name: Create Process Exporter config directory
+      file:
+        path: /etc/process-exporter
+        state: directory
+        owner: "{{ process_exporter_user }}"
+        group: "{{ process_exporter_user }}"
+        mode: '0755'
+
+    - name: Create Process Exporter config file
+      shell: |
+        cat > /etc/process-exporter/config.yml << 'EOF'
+        process_names:
+          # Group processes by name
+          - name: "{{ '{{' }}.Comm{{ '}}' }}"
+            cmdline:
+            - '.+'
+        EOF
+        chmod 0644 /etc/process-exporter/config.yml
+        chown {{ process_exporter_user }}:{{ process_exporter_user }} /etc/process-exporter/config.yml
+      args:
+        executable: /bin/bash
+
+    - name: Create Process Exporter systemd service
+      shell: |
+        cat > /etc/systemd/system/process-exporter.service << 'EOF'
+        [Unit]
+        Description=Process Exporter
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        User={{ process_exporter_user }}
+        Group={{ process_exporter_user }}
+        Type=simple
+        ExecStart=/usr/local/bin/process-exporter --web.listen-address=:{{ process_exporter_port }} --config.path=/etc/process-exporter/config.yml
+        Restart=on-failure
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+        chmod 0644 /etc/systemd/system/process-exporter.service
+      args:
+        executable: /bin/bash
+      notify: Restart Process Exporter
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Process Exporter service
+      systemd:
+        name: process-exporter
+        enabled: yes
+        state: started
+
+    - name: Check if UFW is active
+      command: ufw status
+      register: ufw_status
+      changed_when: false
+      failed_when: false
+
+    - name: Allow Process Exporter port in UFW
+      ufw:
+        rule: allow
+        port: "{{ process_exporter_port }}"
+        proto: tcp
+        comment: "process_exporter"
+      when: "'Status: active' in ufw_status.stdout"
+
+    - name: Display Process Exporter status
+      debug:
+        msg:
+          - "Process Exporter installed successfully"
+          - "Version: {{ process_exporter_version }}"
+          - "Port: {{ process_exporter_port }}"
+          - "Config: /etc/process-exporter/config.yml"
+          - "Access metrics at: http://{{ ansible_host }}:{{ process_exporter_port }}/metrics"
+
+  handlers:
+    - name: Restart Process Exporter
+      systemd:
+        name: process-exporter
+        state: restarted
